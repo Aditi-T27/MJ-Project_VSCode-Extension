@@ -10,7 +10,7 @@
 			"type": "extensionHost",
 			"request": "launch",
 			"args": [ "--extensionDevelopmentPath=${workspaceFolder}"],
-			"env": { "GEMINI_API_KEY": "add your api key here"},
+			"env": { "GEMINI_API_KEY": "AIzaSyBAQqMTRRXkHVhjCcnobOacoN85IY4JJUk"},
 			"outFiles": [ "${workspaceFolder}/out/**/*.js" ],
 			"preLaunchTask": "${defaultBuildTask}"
 		}

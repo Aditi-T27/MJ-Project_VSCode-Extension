@@ -1,3 +1,140 @@
+import * as vscode from "vscode";
+import { clearAndShow, log } from "./utils/logger.js";
+import { analyzeCode } from "./agents/codeAnalyzer.js";
+import { runTests } from "./agents/testRunner.js";
+import { generateDocs } from "./agents/docGenerator.js";
+import { analyzeEdgeCases } from "./agents/codeFeedback.js";
+
+export function activate(context: vscode.ExtensionContext) {
+  // Command 1: Normal flow
+  const explainCmd = vscode.commands.registerCommand("gemini.explainCode", async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showInformationMessage("Open a file to analyze");
+      return;
+    }
+
+    const code = editor.document.getText();
+    clearAndShow();
+    log("Sending code to Gemini...\n");
+
+    try {
+      const endpoints = await analyzeCode(code);
+
+      if (endpoints.length === 0) {
+        vscode.window.showErrorMessage("No endpoints extracted.");
+        return;
+      }
+
+      await runTests(endpoints);
+      generateDocs(endpoints);
+
+    } catch (err: any) {
+      log("Gemini call error: " + String(err));
+      vscode.window.showErrorMessage("Gemini request failed — see output channel");
+    }
+  });
+
+  // Command 2: Feedback mode
+  const feedbackCmd = vscode.commands.registerCommand("gemini.feedbackCode", async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showInformationMessage("Open a file to analyze");
+      return;
+    }
+
+    const code = editor.document.getText();
+    clearAndShow();
+    log("Sending code to Gemini for feedback...\n");
+
+    try {
+      const feedback = await analyzeEdgeCases(code);
+
+      if (feedback.length === 0) {
+        vscode.window.showErrorMessage("No feedback generated.");
+        return;
+      }
+
+      log("\n=== Edge Case Feedback ===\n");
+      log(JSON.stringify(feedback, null, 2));
+
+    } catch (err: any) {
+      log("Gemini feedback error: " + String(err));
+      vscode.window.showErrorMessage("Gemini feedback request failed — see output channel");
+    }
+  });
+
+  context.subscriptions.push(explainCmd, feedbackCmd);
+}
+
+export function deactivate() {}
+
+
+
+//-- The  below code does not have the second cmd of check and feedback
+
+// import * as vscode from "vscode";
+// import { clearAndShow, log } from "./utils/logger.js";
+// import { analyzeCode } from "./agents/codeAnalyzer.js";
+// import { runTests } from "./agents/testRunner.js";
+// import { generateDocs } from "./agents/docGenerator.js";
+
+// export function activate(context: vscode.ExtensionContext) {
+//   const explainCmd = vscode.commands.registerCommand("gemini.explainCode", async () => {
+//     const editor = vscode.window.activeTextEditor;
+//     if (!editor) {
+//       vscode.window.showInformationMessage("Open a file to analyze");
+//       return;
+//     }
+
+//     const code = editor.document.getText();
+//     clearAndShow();
+//     log("Sending code to Gemini...\n");
+
+//     try {
+//       // Agent 1: Analyze code
+//       const endpoints = await analyzeCode(code);
+
+//       if (endpoints.length === 0) {
+//         vscode.window.showErrorMessage("No endpoints extracted.");
+//         return;
+//       }
+
+//       // Agent 2: Run tests
+//       await runTests(endpoints);
+
+//       // Agent 3: Generate documentation
+//       generateDocs(endpoints);
+
+//     } catch (err: any) {
+//       log("Gemini call error: " + String(err));
+//       vscode.window.showErrorMessage("Gemini request failed — see Gemini output channel");
+//     }
+//   });
+
+//   context.subscriptions.push(explainCmd);
+// }
+
+// export function deactivate() {}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Extra code to  be commented, added by admin
 
 // import * as vscode from 'vscode';
 // import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -92,49 +229,4 @@
 // }
 
 // export function deactivate() {}
-
-
-import * as vscode from "vscode";
-import { clearAndShow, log } from "./utils/logger.js";
-import { analyzeCode } from "./agents/codeAnalyzer.js";
-import { runTests } from "./agents/testRunner.js";
-import { generateDocs } from "./agents/docGenerator.js";
-
-export function activate(context: vscode.ExtensionContext) {
-  const explainCmd = vscode.commands.registerCommand("gemini.explainCode", async () => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      vscode.window.showInformationMessage("Open a file to analyze");
-      return;
-    }
-
-    const code = editor.document.getText();
-    clearAndShow();
-    log("Sending code to Gemini...\n");
-
-    try {
-      // Agent 1: Analyze code
-      const endpoints = await analyzeCode(code);
-
-      if (endpoints.length === 0) {
-        vscode.window.showErrorMessage("No endpoints extracted.");
-        return;
-      }
-
-      // Agent 2: Run tests
-      await runTests(endpoints);
-
-      // Agent 3: Generate documentation
-      generateDocs(endpoints);
-
-    } catch (err: any) {
-      log("Gemini call error: " + String(err));
-      vscode.window.showErrorMessage("Gemini request failed — see Gemini output channel");
-    }
-  });
-
-  context.subscriptions.push(explainCmd);
-}
-
-export function deactivate() {}
 

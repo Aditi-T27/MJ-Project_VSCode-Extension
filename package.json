@@ -39,5 +39,8 @@
     "@vscode/test-electron": "^2.5.2",
     "eslint": "^9.34.0",
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1"
   }
 }

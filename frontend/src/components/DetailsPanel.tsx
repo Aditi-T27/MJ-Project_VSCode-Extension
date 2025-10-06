@@ -10,10 +10,10 @@ interface ErrorDetails {
 interface Endpoint {
   id: number;
   method: string;
-  path: string;
+  endpoint: string;
   status: string;
   responseTime: number;
-  response?: any;
+  response?: unknown;
   error?: ErrorDetails;
   timestamp: string;
 }
@@ -65,7 +65,7 @@ const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedEndpoint, cardStyle
                 margin: 0,
                 color: 'var(--vscode-descriptionForeground, #999999)'
               }}>
-                {selectedEndpoint.path}
+                {selectedEndpoint.endpoint}
               </p>
             </div>
           </div>

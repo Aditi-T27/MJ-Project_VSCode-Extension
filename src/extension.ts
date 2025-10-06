@@ -4,229 +4,287 @@ import { analyzeCode } from "./agents/codeAnalyzer.js";
 import { runTests } from "./agents/testRunner.js";
 import { generateDocs } from "./agents/docGenerator.js";
 import { analyzeEdgeCases } from "./agents/codeFeedback.js";
+import * as path from "path";
+import * as fs from "fs";
+
+export function createWebviewPanel(
+  context: vscode.ExtensionContext
+): vscode.WebviewPanel {
+  const panel = vscode.window.createWebviewPanel(
+    "geminiEndpoints",
+    "Gemini API Endpoints",
+    vscode.ViewColumn.One,
+    {
+      enableScripts: true,
+      localResourceRoots: [
+        vscode.Uri.file(path.join(context.extensionPath, "frontend", "dist")),
+      ],
+    }
+  );
+
+  panel.webview.html = getWebviewContent(panel, context.extensionUri);
+  return panel;
+}
+
+function getWebviewContent(
+  panel: vscode.WebviewPanel,
+  extensionUri: vscode.Uri
+): string {
+  const reactAppPath = path.join(extensionUri.fsPath, "frontend", "dist");
+  const indexPath = path.join(reactAppPath, "index.html");
+  let indexHtml = fs.readFileSync(indexPath, "utf8");
+
+  // Fix asset URIs for webview
+  indexHtml = indexHtml.replace(
+    /\/assets\//g,
+    panel.webview.asWebviewUri(
+      vscode.Uri.file(path.join(reactAppPath, "assets"))
+    ) + "/"
+  );
+
+  return indexHtml;
+}
 
 export function activate(context: vscode.ExtensionContext) {
-  // Command 1: Normal flow
-  const explainCmd = vscode.commands.registerCommand("gemini.explainCode", async () => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      vscode.window.showInformationMessage("Open a file to analyze");
-      return;
-    }
-
-    const code = editor.document.getText();
-    clearAndShow();
-    log("Sending code to Gemini...\n");
-
-    try {
-      const endpoints = await analyzeCode(code);
-
-      if (endpoints.length === 0) {
-        vscode.window.showErrorMessage("No endpoints extracted.");
+  const explainCmd = vscode.commands.registerCommand(
+    "gemini.explainCode",
+    async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showInformationMessage("Open a file to analyze");
         return;
       }
 
-      await runTests(endpoints);
-      generateDocs(endpoints);
+      const code = editor.document.getText();
+      clearAndShow();
+      log("Sending code to Gemini...\n");
 
-    } catch (err: any) {
-      log("Gemini call error: " + String(err));
-      vscode.window.showErrorMessage("Gemini request failed — see output channel");
+      try {
+        const endpoints = await analyzeCode(code);
+        if (endpoints.length === 0) {
+          vscode.window.showErrorMessage("No endpoints extracted.");
+          return;
+        }
+
+        log("Endpoints:" + endpoints);
+
+        log("Running tests...");
+        await runTests(endpoints);
+
+        log("Generating docs...");
+        generateDocs(endpoints);
+
+        // Show React panel
+        log("Creating Webview...");
+        const panel = createWebviewPanel(context);
+
+        // This won’t affect React yet (until we add listeners)
+        log("Posting message to Webview...");
+        panel.webview.postMessage({
+          type: "setEndpoints",
+          // data: endpoints,
+          endpoints: [ { id: 1, method: 'GET', path: '/api/akshaya', status: 'success', responseTime: 145, response: { data: [{ id: 1, name: 'John Doe' }, { id: 2, name: 'Jane Smith' }], count: 2 }, timestamp: '2025-10-01T10:30:00Z' }, ]
+        });
+
+        log("Message posted.");
+      } catch (err: any) {
+        log("Gemini call error: " + String(err));
+        vscode.window.showErrorMessage(
+          "Gemini request failed — see output channel"
+        );
+      }
     }
-  });
+  );
 
-  // Command 2: Feedback mode
-  const feedbackCmd = vscode.commands.registerCommand("gemini.feedbackCode", async () => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      vscode.window.showInformationMessage("Open a file to analyze");
-      return;
-    }
-
-    const code = editor.document.getText();
-    clearAndShow();
-    log("Sending code to Gemini for feedback...\n");
-
-    try {
-      const feedback = await analyzeEdgeCases(code);
-
-      if (feedback.length === 0) {
-        vscode.window.showErrorMessage("No feedback generated.");
+  const feedbackCmd = vscode.commands.registerCommand(
+    "gemini.feedbackCode",
+    async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showInformationMessage("Open a file to analyze");
         return;
       }
 
-      log("\n=== Edge Case Feedback ===\n");
-      log(JSON.stringify(feedback, null, 2));
+      const code = editor.document.getText();
+      clearAndShow();
+      log("Sending code to Gemini for feedback...\n");
 
-    } catch (err: any) {
-      log("Gemini feedback error: " + String(err));
-      vscode.window.showErrorMessage("Gemini feedback request failed — see output channel");
+      try {
+        const feedback = await analyzeEdgeCases(code);
+
+        if (feedback.length === 0) {
+          vscode.window.showErrorMessage("No feedback generated.");
+          return;
+        }
+
+        log("\n=== Edge Case Feedback ===\n");
+        log(JSON.stringify(feedback, null, 2));
+      } catch (err: any) {
+        log("Gemini feedback error: " + String(err));
+        vscode.window.showErrorMessage(
+          "Gemini feedback request failed — see output channel"
+        );
+      }
     }
-  });
+  );
 
   context.subscriptions.push(explainCmd, feedbackCmd);
 }
 
 export function deactivate() {}
 
-
-
-//-- The  below code does not have the second cmd of check and feedback
-
 // import * as vscode from "vscode";
 // import { clearAndShow, log } from "./utils/logger.js";
 // import { analyzeCode } from "./agents/codeAnalyzer.js";
 // import { runTests } from "./agents/testRunner.js";
 // import { generateDocs } from "./agents/docGenerator.js";
+// import { analyzeEdgeCases } from "./agents/codeFeedback.js";
+// import * as path from "path";
+// import * as fs from "fs";
 
-// export function activate(context: vscode.ExtensionContext) {
-//   const explainCmd = vscode.commands.registerCommand("gemini.explainCode", async () => {
-//     const editor = vscode.window.activeTextEditor;
-//     if (!editor) {
-//       vscode.window.showInformationMessage("Open a file to analyze");
-//       return;
+// export function createWebviewPanel(
+//   context: vscode.ExtensionContext
+// ): vscode.WebviewPanel {
+//   const panel = vscode.window.createWebviewPanel(
+//     "geminiEndpoints",
+//     "Gemini API Endpoints",
+//     vscode.ViewColumn.One,
+//     {
+//       enableScripts: true,
+//       localResourceRoots: [
+//         vscode.Uri.file(path.join(context.extensionPath, "frontend", "dist")),
+//       ],
 //     }
+//   );
 
-//     const code = editor.document.getText();
-//     clearAndShow();
-//     log("Sending code to Gemini...\n");
-
-//     try {
-//       // Agent 1: Analyze code
-//       const endpoints = await analyzeCode(code);
-
-//       if (endpoints.length === 0) {
-//         vscode.window.showErrorMessage("No endpoints extracted.");
-//         return;
-//       }
-
-//       // Agent 2: Run tests
-//       await runTests(endpoints);
-
-//       // Agent 3: Generate documentation
-//       generateDocs(endpoints);
-
-//     } catch (err: any) {
-//       log("Gemini call error: " + String(err));
-//       vscode.window.showErrorMessage("Gemini request failed — see Gemini output channel");
-//     }
-//   });
-
-//   context.subscriptions.push(explainCmd);
-// }
-
-// export function deactivate() {}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//Extra code to  be commented, added by admin
-
-// import * as vscode from 'vscode';
-// import { GoogleGenerativeAI } from '@google/generative-ai';
-// import * as dotenv from 'dotenv';
-// import fetch from 'node-fetch'; // or use global fetch in Node 18+
-
-// dotenv.config();
-
-// let ai: any;
-
-// export function activate(context: vscode.ExtensionContext) {
+//   panel.webview.html = getWebviewContent(panel, context.extensionUri);
   
-//   ai = new GoogleGenerativeAI( process.env.GEMINI_API_KEY || "");
+//   // Set up message listener for webview communications
+//   panel.webview.onDidReceiveMessage(
+//     message => {
+//       switch (message.command) {
+//         case 'generateDocs':
+//           // Handle documentation generation
+//           log('Generating documentation...');
+//           // You can call generateDocs here if needed
+//           break;
+//         case 'analyzeFeedback':
+//           // Handle feedback analysis
+//           log('Analyzing feedback...');
+//           // You can call analyzeEdgeCases here if needed
+//           break;
+//       }
+//     },
+//     undefined,
+//     context.subscriptions
+//   );
 
-//   const model = ai.getGenerativeModel({ model: "gemini-2.0-flash" });
+//   return panel;
+// }
 
-//   const output = vscode.window.createOutputChannel('Gemini');
+// function getWebviewContent(
+//   panel: vscode.WebviewPanel,
+//   extensionUri: vscode.Uri
+// ): string {
+//   const reactAppPath = path.join(extensionUri.fsPath, "frontend", "dist");
+//   const indexPath = path.join(reactAppPath, "index.html");
+//   let indexHtml = fs.readFileSync(indexPath, "utf8");
 
-//   const explainCmd = vscode.commands.registerCommand('gemini.explainCode', async () => {
-//     const editor = vscode.window.activeTextEditor;
-//     if (!editor) {
-//       vscode.window.showInformationMessage('Open a file to extract and test API endpoints');
-//       return;
-//     }
+//   // Fix asset URIs for webview
+//   indexHtml = indexHtml.replace(
+//     /\/assets\//g,
+//     panel.webview.asWebviewUri(
+//       vscode.Uri.file(path.join(reactAppPath, "assets"))
+//     ) + "/"
+//   );
 
-//     const code = editor.document.getText();
-//     output.clear();
-//     output.show(true);
-//     output.appendLine('Sending code to Gemini (truncated preview):\n');
-//     output.appendLine(code.slice(0, 1500) + (code.length > 1500 ? '\n\n...[truncated]' : ''));
+//   return indexHtml;
+// }
 
-//     try {
-//       const prompt = `
-//         Extract all REST API endpoints from the following JavaScript/TypeScript code.
-//         Return ONLY a JSON array of objects like:
-//         [
-//           { "method": "GET", "endpoint": "/users" },
-//           { "method": "POST", "endpoint": "/login" }
-//         ]
-        
-//         Code:
-//         ${code}
-//       `;
-
-//       const resp = await model.generateContent(prompt);
-
-//       // Gemini response can vary, try candidates[0].content first
-//       // const text = resp?.text ?? resp?.candidates?.[0]?.content ?? JSON.stringify(resp);
-//       const text = resp.response.text();
-//       output.appendLine('\n=== Gemini Extracted Endpoints ===\n');
-//       output.appendLine(text);
-
-//       let cleanText = text.trim();
-
-//       // Remove ```json ... ``` or ``` ... ``` fences
-//       cleanText = cleanText.replace(/```(?:json)?\n([\s\S]*?)```/, '$1').trim();
-
-//       let endpoints: { method: string; endpoint: string }[] = [];
-//       try {
-//         endpoints = JSON.parse(cleanText);
-//         if (!Array.isArray(endpoints)) {
-//           throw new Error('Parsed JSON is not an array');
-//         }
-//       } catch (err) {
-//         output.appendLine('Failed to parse JSON from Gemini response. Response:\n' + cleanText);
-//         vscode.window.showErrorMessage('Failed to parse endpoints from Gemini response. Check output panel.');
+// export function activate(context: vscode.ExtensionContext) {
+//   const explainCmd = vscode.commands.registerCommand(
+//     "gemini.explainCode",
+//     async () => {
+//       const editor = vscode.window.activeTextEditor;
+//       if (!editor) {
+//         vscode.window.showInformationMessage("Open a file to analyze");
 //         return;
 //       }
 
-//       // Run basic GET requests
-//       output.appendLine('\n=== Running Basic GET Tests ===\n');
-//       for (const ep of endpoints) {
-//         try {
-//           if (ep.method.toUpperCase() !== 'GET') {
-//             continue;
-//           }
-//           const url = `http://localhost:3000${ep.endpoint}`;
-//           const res = await fetch(url);
-//           output.appendLine(`GET ${url} -> ${res.status}`);
-//         } catch (err) {
-//           output.appendLine(`GET ${ep.endpoint} -> ERROR: ${(err as Error).message}`);
+//       const code = editor.document.getText();
+//       clearAndShow();
+//       log("Sending code to Gemini...\n");
+
+//       try {
+//         const endpoints = await analyzeCode(code);
+//         if (endpoints.length === 0) {
+//           vscode.window.showErrorMessage("No endpoints extracted.");
+//           return;
 //         }
+
+//         log("Endpoints:" + JSON.stringify(endpoints, null, 2));
+
+//         // Show React panel first
+//         log("Creating Webview...");
+//         const panel = createWebviewPanel(context);
+
+//         // Run tests and get results
+//         log("Running tests...");
+//         const testResults = await runTests(endpoints);
+
+//         // Send the actual test results to React
+//         log("Posting test results to Webview...");
+//         panel.webview.postMessage({
+//           type: "setEndpoints",
+//           endpoints: testResults
+//         });
+
+//         log("Generating docs...");
+//         generateDocs(endpoints);
+
+//         log("Test results sent to webview.");
+//       } catch (err: any) {
+//         log("Gemini call error: " + String(err));
+//         vscode.window.showErrorMessage(
+//           "Gemini request failed — see output channel"
+//         );
+//       }
+//     }
+//   );
+
+//   const feedbackCmd = vscode.commands.registerCommand(
+//     "gemini.feedbackCode",
+//     async () => {
+//       const editor = vscode.window.activeTextEditor;
+//       if (!editor) {
+//         vscode.window.showInformationMessage("Open a file to analyze");
+//         return;
 //       }
 
-//     } catch (err) {
-//       output.appendLine('Gemini call error: ' + String(err));
-//       vscode.window.showErrorMessage('Gemini request failed — see Gemini output channel');
-//     }
-//   });
+//       const code = editor.document.getText();
+//       clearAndShow();
+//       log("Sending code to Gemini for feedback...\n");
 
-//   context.subscriptions.push(explainCmd);
+//       try {
+//         const feedback = await analyzeEdgeCases(code);
+
+//         if (feedback.length === 0) {
+//           vscode.window.showErrorMessage("No feedback generated.");
+//           return;
+//         }
+
+//         log("\n=== Edge Case Feedback ===\n");
+//         log(JSON.stringify(feedback, null, 2));
+//       } catch (err: any) {
+//         log("Gemini feedback error: " + String(err));
+//         vscode.window.showErrorMessage(
+//           "Gemini feedback request failed — see output channel"
+//         );
+//       }
+//     }
+//   );
+
+//   context.subscriptions.push(explainCmd, feedbackCmd);
 // }
 
 // export function deactivate() {}
-

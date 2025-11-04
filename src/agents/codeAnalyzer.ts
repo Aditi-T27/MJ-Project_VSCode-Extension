@@ -11,6 +11,7 @@ export async function analyzeCode(code: string): Promise<Endpoint[]> {
       - "body" (optional): if the endpoint expects a request body (for POST, PUT, PATCH),
         provide realistic example data for each field instead of types. Use plausible values
         like names, emails, numbers, booleans, arrays, etc.
+      - Strictly only consider the Endpoints from the code sent, do not add any other endpoints, consider only the request body asked in the endpoint do not add any extra fields.
 
     For example, if the code contains:
       app.post("/users", (req, res) => {
@@ -19,7 +20,7 @@ export async function analyzeCode(code: string): Promise<Endpoint[]> {
 
     The output should be:
     [
-      { "method": "POST", "endpoint": "/users", "body": { "name": "Aditi", "age": 25 } }
+      { "method": "POST", "endpoint": "/users", "body": { "name": "Aditi", "age": 19 } }
     ]
 
     Return ONLY a valid JSON array (no explanations or text), like:
@@ -35,7 +36,7 @@ export async function analyzeCode(code: string): Promise<Endpoint[]> {
   const resp = await geminiModel.generateContent(prompt);
   const text = resp.response.text();
 
-  log("\n=== Gemini Extracted Endpoints with Realistic Data ===\n");
+  log("\n===  Extracted Endpoints with Realistic Data ===\n");
   log(text);
 
   // Remove code fences if present
@@ -44,6 +45,7 @@ export async function analyzeCode(code: string): Promise<Endpoint[]> {
 
   try {
     const endpoints = JSON.parse(cleanText);
+    log("Endpoints: once again" + JSON.stringify(endpoints, null, 2));
 
     if (!Array.isArray(endpoints)) throw new Error("Parsed JSON is not an array");
 

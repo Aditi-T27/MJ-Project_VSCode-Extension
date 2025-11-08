@@ -7,17 +7,23 @@
   "engines": {
     "vscode": "^1.104.0"
   },
-  "categories": [ "Other" ],
+  "categories": [
+    "Other"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "gemini.explainCode",
-        "title": "Explain Code with Gemini"
+        "title": "API Tester and Auto-Documentor"
       },
       {
         "command": "gemini.feedbackCode",
-        "title": "Gemini: Get Code Feedback"
+        "title": "Get Code Feedback"
+      },
+      {
+        "command": "gemini.generateApiDocs",
+        "title": "Generate API Documentation"
       }
     ]
   },
@@ -41,10 +47,12 @@
     "@vscode/test-electron": "^2.5.2",
     "dotenv": "^17.2.3",
     "eslint": "^9.34.0",
-    "typescript": "^5.9.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "openai": "^6.2.0"
   }
 }

@@ -11,22 +11,33 @@
     "Other"
   ],
   "main": "./out/extension.js",
-  "contributes": {
-    "commands": [
+ "contributes": {
+  "commands": [
+    {
+      "command": "gemini.explainCode",
+      "title": "Explain Code"
+    },
+    {
+      "command": "gemini.feedbackCode",
+      "title": "Get Code Feedback"
+    },
+    {
+      "command": "gemini.generateApiDocs",
+      "title": "Generate API Documentation"
+    }
+  ],
+  "viewsContainers": {
+    "activitybar": [
       {
-        "command": "gemini.explainCode",
-        "title": "API Tester and Auto-Documentor"
-      },
-      {
-        "command": "gemini.feedbackCode",
-        "title": "Get Code Feedback"
-      },
-      {
-        "command": "gemini.generateApiDocs",
-        "title": "Generate API Documentation"
+        "id": "geminiActivity",
+        "title": "Gemini",
+        "icon": "resources/icon.svg"
       }
     ]
-  },
+  }
+
+}
+,
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",

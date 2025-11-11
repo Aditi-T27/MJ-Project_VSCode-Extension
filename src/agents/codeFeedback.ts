@@ -163,21 +163,46 @@ export async function analyzeEdgeCases(code: string) {
   // Select a few seed examples as string for prompt few-shot
   const fewShots = JSON.stringify(seedDataset.slice(0, 3), null, 2);
 
-  const prompt = `
-You are a backend code reviewer. Analyze the following JavaScript/TypeScript backend code.
+const prompt = `
+You are a backend code reviewer AI. Analyze the following JavaScript/TypeScript backend code and identify possible edge cases for each API endpoint.
 
-Here are some examples of analysis:
+Output must be **strictly valid JSON** — no text, no explanations, no markdown fences. The structure must exactly match this schema:
 
-${fewShots}
+[
+  {
+    "method": "HTTP_METHOD",
+    "endpoint": "/endpoint",
+    "inputFields": ["field1", "field2"],
+    "possibleEdgeCases": [
+      {
+        "field": "fieldName",
+        "issue": "description of the issue",
+        "testCases": [
+          {
+            "input": "exampleInput",
+            "vulnerability": "describe what can go wrong",
+            "solution": "describe how to fix or validate"
+          },
+          {
+            "input": "...",
+            "vulnerability": "...",
+            "solution": "..."
+          }
+        ],
+        "suggestedImprovements": [
+          "suggestion 1",
+          "suggestion 2"
+        ]
+      }
+    ]
+  }
+]
 
-Now analyze this backend code similarly, understand what the code does and provide a valuable feedback, specifically understand
-what the fields and parameters are and provide insights on malicious test cases which the api code is not able handle, provide 3 such testcases for each endpoint: and answer as
-how these cases can be handled.
-Do not repeat the answers, apprach each endpoint with a fresh approach learn and provide the right and best fit suggestions
-Backend code:
+Only return JSON — do not include markdown, explanations, or text before or after.
+
+Backend code to analyze:
 ${code}
-  `;
-
+`;
   const resp = await geminiModel.generateContent(prompt);
   const text = resp.response.text();
 

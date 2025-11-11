@@ -18,7 +18,7 @@ dotenv.config();
 
 // const HF_TOKEN = process.env.HF_TOKEN;
 
-const HF_TOKEN= ""; // from .env
+const HF_TOKEN= ""; 
 if (!HF_TOKEN) {
   throw new Error("HF_TOKEN is missing. Please set it in your .env file");
 }

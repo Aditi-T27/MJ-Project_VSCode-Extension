@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 // const vscode = acquireVsCodeApi();
 function App() {
     const [endpoints, setEndpoints] = useState([]);
@@ -10,14 +10,26 @@ function App() {
             }
         });
     }, []);
-    return (<div style={{ padding: "1rem" }}>
-      <h2>Extracted Endpoints</h2>
-      {endpoints.length === 0 ? (<p>No endpoints yet</p>) : (<ul>
-          {endpoints.map((ep, i) => (<li key={i}>
-              <b>{ep.method}</b> → {ep.endpoint}
-            </li>))}
-        </ul>)}
-    </div>);
+    return React.createElement(
+      "div",
+      { style: { padding: "1rem" } },
+      React.createElement("h2", null, "Extracted Endpoints"),
+      endpoints.length === 0
+        ? React.createElement("p", null, "No endpoints yet")
+        : React.createElement(
+            "ul",
+            null,
+            endpoints.map((ep, i) =>
+              React.createElement(
+                "li",
+                { key: i },
+                React.createElement("b", null, ep.method),
+                " → ",
+                ep.endpoint
+              )
+            )
+          )
+    );
 }
 export default App;
 //# sourceMappingURL=App.js.map

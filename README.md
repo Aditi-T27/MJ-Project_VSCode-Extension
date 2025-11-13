@@ -1,6 +1,6 @@
-# abc README
+# API tester Extension README
 
-This is the README for your extension "abc". After writing up a brief description, we recommend including the following sections.
+This is the README for your extension API tester. After writing up a brief description, we recommend including the following sections.
 
 ## Features
 

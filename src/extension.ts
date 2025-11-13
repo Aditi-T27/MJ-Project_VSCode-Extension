@@ -269,19 +269,50 @@ export function activate(context: vscode.ExtensionContext) {
     const panel = createWebviewPanel(context);
     globalPanel = panel;
 
-    // Handle global messages (from React)
-    panel.webview.onDidReceiveMessage(async (message) => {
-      log("📨 Message from React: " + JSON.stringify(message));
+    //----- Handle global messages (from React) this is the prior cmd when only feedback btn exisited
+    // panel.webview.onDidReceiveMessage(async (message) => {
+    //   log(" Message from React: " + JSON.stringify(message));
 
-      if (message.type === "runCommand" && message.command) {
-        log(`⚙️ Running command: ${message.command}`);
-        // 🔹 Pass file path info when invoking commands
-        await vscode.commands.executeCommand(message.command, {
-          filePath: lastAnalyzedFile,
-          code: lastAnalyzedCode,
-        });
+    //   if (message.type === "runCommand" && message.command) {
+    //     log(` Running command: ${message.command}`);
+    //     // Pass file path info when invoking commands
+    //     await vscode.commands.executeCommand(message.command, {
+    //       filePath: lastAnalyzedFile,
+    //       code: lastAnalyzedCode,
+    //     });
+    //   }
+    // });
+
+    panel.webview.onDidReceiveMessage(async (message) => {
+  log("Message from React: " + JSON.stringify(message));
+
+  if (message.type === "runCommand" && message.command) {
+    log(`Running command: ${message.command}`);
+
+    // Common data you may want to pass to every command
+    const contextData = {
+      filePath: lastAnalyzedFile,
+      code: lastAnalyzedCode,
+    };
+
+    try {
+      switch (message.command) {
+        
+
+        default:
+          // For any other commands, just execute them normally
+          await vscode.commands.executeCommand(message.command, contextData);
+          break;
       }
-    });
+    } catch (error) {
+      log(`Error running command ${message.command}: ${error}`);
+      vscode.window.showErrorMessage(
+        `Error executing command ${message.command}: ${error}`
+      );
+    }
+  }
+});
+
 
     panel.onDidDispose(() => {
       globalPanel = null;
@@ -302,7 +333,7 @@ export function activate(context: vscode.ExtensionContext) {
       code = editor.document.getText();
       filePath = editor.document.uri.fsPath;
       lastAnalyzedFile = filePath;
-      lastAnalyzedCode = code; // 🔹 Save globally
+      lastAnalyzedCode = code; // Save globally
     } else if (lastAnalyzedFile) {
       const doc = await vscode.workspace.openTextDocument(lastAnalyzedFile);
       code = doc.getText();
@@ -364,7 +395,7 @@ export function activate(context: vscode.ExtensionContext) {
   const feedbackCmd = vscode.commands.registerCommand(
     "gemini.feedbackCode",
     async (args?: { filePath?: string; code?: string }) => {
-      // 🔹 Prefer args passed from React
+      // Prefer args passed from React
       let filePath = args?.filePath || lastAnalyzedFile;
       let code = args?.code || lastAnalyzedCode;
 
@@ -428,14 +459,23 @@ log(feedback);
   // -------------------------------------------
   // DOC GENERATION COMMAND
   // -------------------------------------------
-  const docGenCmd = vscode.commands.registerCommand("gemini.generateApiDocs", async () => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      vscode.window.showErrorMessage("Please open a file containing API code.");
-      return;
-    }
+  const docGenCmd = vscode.commands.registerCommand("gemini.generateApiDocs",  async (args?: { filePath?: string; code?: string }) => {
+      // Prefer args passed from React
+      let filePath = args?.filePath || lastAnalyzedFile;
+      let code = args?.code || lastAnalyzedCode;
 
-    const code = editor.document.getText();
+      if (!code && filePath) {
+        const doc = await vscode.workspace.openTextDocument(filePath);
+        code = doc.getText();
+      }
+
+      if (!code) {
+        vscode.window.showInformationMessage("No file found to analyze");
+        return;
+      }
+
+
+    // const code = editor.document.getText();
 
     vscode.window.withProgress(
       {
@@ -455,7 +495,7 @@ log(feedback);
   });
 
   // -------------------------------------------
-  // STATUS BAR SHORTCUT
+  // STATUS BAR SHORTCUT- currently functionality is not added 
   // -------------------------------------------
   const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1000);
   statusBarItem.text = '$(file-code) Explain Code';

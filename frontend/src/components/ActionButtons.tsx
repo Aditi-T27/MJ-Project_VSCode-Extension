@@ -10,12 +10,12 @@ interface ActionButtonsProps {
 }
 
 const ActionButtons: React.FC<ActionButtonsProps> = ({
-  isGeneratingDocs, isAnalyzing, handleAnalyzeFeedback, buttonStyle
+  isGeneratingDocs, isAnalyzing, handleAnalyzeFeedback, buttonStyle, handleGenerateDocs
 }) => (
   <div style={{ padding: '24px' }}>
     <div style={{ display: 'flex', gap: '16px' }}>
       <button
-     
+          onClick={handleGenerateDocs} 
         disabled={isGeneratingDocs}
         style={{
           ...buttonStyle,

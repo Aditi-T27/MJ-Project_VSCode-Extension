@@ -92,7 +92,7 @@ const APITesterUI: React.FC = () => {
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [feedbackResults, setFeedbackResults] = useState<ApiFdk[]>([]);
-
+  const [isGeneratingDocs, setIsGeneratingDocs] = useState(false);
 //  const navigate = useNavigate();
 
   useEffect(() => {
@@ -449,6 +449,21 @@ const handleAnalyzeFeedback = (): void => {
   }
 };
 
+const handleGenerateDocs = (): void => {
+  console.log("Button Clicked — starting documentation");
+  setIsGeneratingDocs(true);
+
+  if (vscodeApi && typeof vscodeApi.postMessage === "function") {vscodeApi.postMessage({
+      type: "runCommand",
+      command: "gemini.generateApiDocs", // runs your backend/docs command
+    });
+   
+  } else {
+    console.warn("VS Code API not available — cannot run extension command.");
+    setIsGeneratingDocs(false);
+  }
+};
+
   // Filter endpoints based on active tab
   const filteredEndpoints: Endpoint[] = endpoints.filter((ep: Endpoint) => {
     if (activeTab === 'success') return ep.status === 'success';
@@ -703,10 +718,10 @@ return (
 
     <ActionButtons
       isAnalyzing={isAnalyzing}
-      handleGenerateDocs={() => {}}
+  handleGenerateDocs={handleGenerateDocs} 
       handleAnalyzeFeedback={handleAnalyzeFeedback}
       buttonStyle={{ padding: "12px 24px", borderRadius: "10px" }}
-      isGeneratingDocs={false}
+      isGeneratingDocs={isGeneratingDocs}
     />
 
     <Tabs
@@ -770,7 +785,7 @@ return (
           }}
         >
           <h2 style={{ color: "#4FC3F7", marginBottom: "24px" }}>
-            🔍 API Feedback Analysis
+             API Feedback Analysis
           </h2>
 
           {feedbackResults.map((api, idx) => (
@@ -793,26 +808,26 @@ return (
                   }}
                 >
                   <h4 style={{ color: "#FFB74D" }}>
-                    ⚠️ Issue: {ec.issue} ({ec.field})
+                     Issue: {ec.issue} ({ec.field})
                   </h4>
 
                   {ec.testCases?.map((tc, tIdx) => (
                     <div key={tIdx} style={{ marginLeft: "16px", marginTop: "8px" }}>
                       <p>
-                        <strong>🧪 Test Input:</strong> {tc.input}
+                        <strong> Test Input:</strong> {tc.input}
                       </p>
                       <p>
-                        <strong>🚨 Vulnerability:</strong> {tc.vulnerability}
+                        <strong> Vulnerability:</strong> {tc.vulnerability}
                       </p>
                       <p>
-                        <strong>💡 Solution:</strong> {tc.solution}
+                        <strong> Solution:</strong> {tc.solution}
                       </p>
                     </div>
                   ))}
 
                   {ec.suggestedImprovements && ec.suggestedImprovements.length > 0 && (
                     <div style={{ marginTop: "8px", marginLeft: "16px" }}>
-                      <strong>✨ Suggested Improvements:</strong>
+                      <strong> Suggested Improvements:</strong>
                       <ul>
                         {ec.suggestedImprovements.map((sug, sIdx) => (
                           <li key={sIdx}>{sug}</li>
